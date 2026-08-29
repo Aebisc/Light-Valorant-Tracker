@@ -328,11 +328,13 @@ function ExpandedRow({ p, flags }: {
     }}>
       <div className="expanded-grid">
         <div className="expanded-section">
-          <div className="t-micro" style={{ color: "var(--ink-dim)", marginBottom: 8 }}>Last Match</div>
+          <div className="t-micro" style={{ color: "var(--ink-dim)", marginBottom: 8 }}>
+            {p.recentGamesCount > 1 ? `Last ${p.recentGamesCount} Games (avg)` : "Last Match"}
+          </div>
           <div style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
             <div>
               <span className="t-title" style={{ fontSize: 20, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>
-                {p.kills}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.deaths}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.assists}
+                {p.kills.toFixed(1)}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.deaths.toFixed(1)}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.assists.toFixed(1)}
               </span>
               <div className="t-micro" style={{ color: "var(--ink-dim)", marginTop: 3 }}>K / D / A</div>
             </div>

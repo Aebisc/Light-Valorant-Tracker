@@ -31,6 +31,7 @@ export interface ValorantPlayer {
   currentSeasonWins: number;
   currentSeasonGames: number;
   isCurrentActRank: boolean;
+  recentGamesCount: number;
 }
 
 export interface MatchInfo {

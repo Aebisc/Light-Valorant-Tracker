@@ -207,9 +207,9 @@ export async function getPlayerMMR(config: ApiConfig, puuid: string): Promise<an
   return safeJson(res);
 }
 
-export async function getCompetitiveUpdates(config: ApiConfig, puuid: string): Promise<any> {
+export async function getCompetitiveUpdates(config: ApiConfig, puuid: string, count = 1): Promise<any> {
   const res = await remoteFetch(
-    `${config.pdUrl}/mmr/v1/players/${puuid}/competitiveupdates?startIndex=0&endIndex=1&queue=competitive`,
+    `${config.pdUrl}/mmr/v1/players/${puuid}/competitiveupdates?startIndex=0&endIndex=${count}&queue=competitive`,
     { headers: config.headers }
   );
   return safeJson(res);

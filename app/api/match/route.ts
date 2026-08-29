@@ -18,6 +18,7 @@ import type { ValorantPlayer, MatchInfo, ApiConfig } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const VANDAL_WEAPON_ID = "9c82e19d-4575-0200-1a81-3eacf00cf872";
+const RECENT_GAMES_COUNT = 10;
 
 let matchCache: {
   matchId: string;
@@ -76,7 +77,9 @@ function extractSkin(loadouts: any, puuid: string): string {
   }
 }
 
-const MAX_MATCH_DETAIL_CACHE = 5;
+// Sized to comfortably hold ~10 recent games for up to 10 players in a single lobby
+// without evicting entries mid-session (details are keyed by immutable match id).
+const MAX_MATCH_DETAIL_CACHE = 150;
 const matchDetailCache = new Map<string, any>();
 let matchDetailCacheForMatchId: string | null = null;
 
@@ -133,13 +136,68 @@ function extractPlayerStats(matchDetail: any, puuid: string) {
   const adr = roundsPlayed > 0 ? Math.round((totalDamage / roundsPlayed) * 10) / 10 : 0;
 
   const teamId = playerStats?.teamId;
+  let won = false;
   if (teamId) {
-    const wins = matchDetail?.teams?.find((t: any) => t.teamId === teamId)?.roundsWon ?? 0;
-    const total = matchDetail?.teams?.find((t: any) => t.teamId === teamId)?.roundsPlayed ?? 0;
+    const team = matchDetail?.teams?.find((t: any) => t.teamId === teamId);
+    const wins = team?.roundsWon ?? 0;
+    const total = team?.roundsPlayed ?? 0;
     winrate = total > 0 ? Math.round((wins / total) * 1000) / 10 : 0;
+    if (typeof team?.won === "boolean") {
+      won = team.won;
+    } else {
+      const opponent = matchDetail?.teams?.find((t: any) => t.teamId !== teamId);
+      won = wins > (opponent?.roundsWon ?? 0);
+    }
   }
 
-  return { kills, deaths, assists, kd, headshots, bodyshots, legshots, headshotPercent, winrate, acs, adr };
+  return { kills, deaths, assists, kd, headshots, bodyshots, legshots, headshotPercent, winrate, acs, adr, won };
+}
+
+/** Averages a player's stats across their N most recent completed matches. */
+function aggregatePlayerStats(matchDetails: any[], puuid: string) {
+  let sumKills = 0, sumDeaths = 0, sumAssists = 0;
+  let sumHeadshots = 0, sumBodyshots = 0, sumLegshots = 0;
+  let sumAcs = 0, sumAdr = 0, wins = 0;
+  let gamesCounted = 0;
+
+  for (const matchDetail of matchDetails) {
+    if (!matchDetail) continue;
+    const stats = extractPlayerStats(matchDetail, puuid);
+    sumKills += stats.kills;
+    sumDeaths += stats.deaths;
+    sumAssists += stats.assists;
+    sumHeadshots += stats.headshots;
+    sumBodyshots += stats.bodyshots;
+    sumLegshots += stats.legshots;
+    sumAcs += stats.acs;
+    sumAdr += stats.adr;
+    if (stats.won) wins++;
+    gamesCounted++;
+  }
+
+  if (gamesCounted === 0) {
+    return {
+      kills: 0, deaths: 0, assists: 0, kd: 0,
+      headshots: 0, bodyshots: 0, legshots: 0, headshotPercent: 0,
+      winrate: 0, acs: 0, adr: 0, recentGamesCount: 0,
+    };
+  }
+
+  const kd = sumDeaths > 0 ? Math.round((sumKills / sumDeaths) * 100) / 100 : sumKills;
+  const totalShots = sumHeadshots + sumBodyshots + sumLegshots;
+  const headshotPercent = totalShots > 0 ? Math.round((sumHeadshots / totalShots) * 1000) / 10 : 0;
+  const acs = Math.round(sumAcs / gamesCounted);
+  const adr = Math.round((sumAdr / gamesCounted) * 10) / 10;
+  const winrate = Math.round((wins / gamesCounted) * 1000) / 10;
+  const kills = Math.round((sumKills / gamesCounted) * 10) / 10;
+  const deaths = Math.round((sumDeaths / gamesCounted) * 10) / 10;
+  const assists = Math.round((sumAssists / gamesCounted) * 10) / 10;
+
+  return {
+    kills, deaths, assists, kd,
+    headshots: sumHeadshots, bodyshots: sumBodyshots, legshots: sumLegshots, headshotPercent,
+    winrate, acs, adr, recentGamesCount: gamesCounted,
+  };
 }
 
 async function buildPlayer(
@@ -149,10 +207,10 @@ async function buildPlayer(
   loadouts: any,
   nameData: { GameName?: string; DisplayName?: string; TagLine?: string } | null,
   matchSeasonId: string
-): Promise<ValorantPlayer & { _recentMatchId?: string }> {
+): Promise<ValorantPlayer & { _recentMatchIds?: string[] }> {
   const [mmrRaw, compUpdates] = await Promise.all([
     getPlayerMMR(config, puuid).catch((e) => { console.error("[mmr throw]", puuid, e?.message); return null; }),
-    getCompetitiveUpdates(config, puuid).catch((e) => { console.error("[comp throw]", puuid, e?.message); return null; }),
+    getCompetitiveUpdates(config, puuid, RECENT_GAMES_COUNT).catch((e) => { console.error("[comp throw]", puuid, e?.message); return null; }),
   ]);
 
   const mmrData = mmrRaw?.httpStatus ? null : mmrRaw;
@@ -165,17 +223,34 @@ async function buildPlayer(
   let peakRank = getPeakRank(seasonalInfo);
   if (rank > peakRank) peakRank = rank;
 
-  const currentSeason = getCurrentSeasonId(seasonalInfo, matchSeasonId);
+  const recentMatches: any[] = Array.isArray(compUpdates?.Matches) ? compUpdates.Matches : [];
+
+  // The live-match APIs (pregame/core-game) don't actually expose a SeasonID field
+  // (contrary to what `matchSeasonId` implies), so it's always empty in practice.
+  // The most reliable signal for "current act" we actually have is the season of the
+  // player's own most recent competitive match.
+  const latestMatchSeasonId: string = recentMatches[0]?.SeasonID || "";
+  const currentSeason = latestMatchSeasonId || getCurrentSeasonId(seasonalInfo, matchSeasonId);
+
   const currentSeasonData = currentSeason ? seasonalInfo[currentSeason] : null;
   const currentSeasonWins = currentSeasonData?.NumberOfWinsWithPlacements ?? currentSeasonData?.NumberOfWins ?? 0;
   const currentSeasonGames = currentSeasonData?.NumberOfGames ?? 0;
-  const isCurrentActRank = !!(currentSeason && matchSeasonId && currentSeason === matchSeasonId && (currentSeasonWins + currentSeasonGames) > 0);
+  const isCurrentActRank = !!(currentSeason && (currentSeasonWins + currentSeasonGames) > 0);
 
-  const latestUpdate = compUpdates?.Matches?.[0];
+  // Matches come back newest-first, so take the leading run that shares the same
+  // season as the most recent match — once the season changes we've crossed into
+  // a previous act and should stop there.
+  const currentActMatches: any[] = [];
+  for (const m of recentMatches) {
+    if (currentSeason && m?.SeasonID !== currentSeason) break;
+    currentActMatches.push(m);
+  }
+
+  const latestUpdate = currentActMatches[0] ?? recentMatches[0];
   const rr = latestComp?.RankedRatingAfterUpdate ?? latestUpdate?.RankedRatingAfterUpdate ?? 0;
   const earnedRr = latestComp?.RankedRatingEarned ?? latestUpdate?.RankedRatingEarned ?? 0;
   const leaderboardPosition = latestUpdate?.LeaderboardPosition ?? 0;
-  const recentMatchId = latestUpdate?.MatchID ?? "";
+  const recentMatchIds = currentActMatches.map((m) => m?.MatchID).filter(Boolean) as string[];
 
   const agentId = matchPlayerData?.CharacterID ?? matchPlayerData?.CharacterSelectionID ?? "";
   const identity = matchPlayerData?.PlayerIdentity ?? {};
@@ -218,7 +293,8 @@ async function buildPlayer(
     currentSeasonWins,
     currentSeasonGames,
     isCurrentActRank,
-    _recentMatchId: recentMatchId,
+    recentGamesCount: 0,
+    _recentMatchIds: recentMatchIds,
   };
 }
 
@@ -339,12 +415,12 @@ export async function GET(request: Request) {
           .catch(() => null);
       })
     );
-    const validPlayers = rawPlayers.filter((p): p is (ValorantPlayer & { _recentMatchId?: string }) => p !== null);
+    const validPlayers = rawPlayers.filter((p): p is (ValorantPlayer & { _recentMatchIds?: string[] }) => p !== null);
 
     const uniqueMatchIds = new Set<string>();
     for (const p of validPlayers) {
-      if (p._recentMatchId && !matchDetailCache.has(p._recentMatchId)) {
-        uniqueMatchIds.add(p._recentMatchId);
+      for (const mid of p._recentMatchIds ?? []) {
+        if (!matchDetailCache.has(mid)) uniqueMatchIds.add(mid);
       }
     }
 
@@ -355,14 +431,24 @@ export async function GET(request: Request) {
           .catch(() => ({ mid, detail: null }))
       )
     );
+
+    // Combine newly fetched details with whatever's already cached before writing back —
+    // this avoids losing entries mid-computation if the cache cap gets hit during this batch.
+    const detailLookup = new Map<string, any>(matchDetailCache);
+    for (const { mid, detail } of detailResults) {
+      if (detail) detailLookup.set(mid, detail);
+    }
     for (const { mid, detail } of detailResults) {
       if (detail) cacheMatchDetail(mid, detail, resolvedMatchId);
     }
 
     const builtPlayers: ValorantPlayer[] = validPlayers.map((p) => {
-      const { _recentMatchId, ...player } = p;
-      if (_recentMatchId && matchDetailCache.has(_recentMatchId)) {
-        const stats = extractPlayerStats(matchDetailCache.get(_recentMatchId), p.puuid);
+      const { _recentMatchIds, ...player } = p;
+      const details = (_recentMatchIds ?? [])
+        .map((mid) => detailLookup.get(mid))
+        .filter(Boolean);
+      if (details.length > 0) {
+        const stats = aggregatePlayerStats(details, p.puuid);
         return { ...player, ...stats };
       }
       return player;

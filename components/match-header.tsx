@@ -50,7 +50,7 @@ function formatMatchStats(matchInfo: MatchInfo, players: Player[]): string {
   const red = players.filter((p) => p.teamId === "Red");
 
   const formatPlayer = (p: Player) =>
-    `${p.name}#${p.tag} — ${p.agentName || "?"} — ${p.rankName || "Unranked"} — ${p.kills}/${p.deaths}/${p.assists} — ${p.acs.toFixed(1)} ACS`;
+    `${p.name}#${p.tag} — ${p.agentName || "?"} — ${p.rankName || "Unranked"} — ${p.kills.toFixed(1)}/${p.deaths.toFixed(1)}/${p.assists.toFixed(1)} — ${p.acs.toFixed(1)} ACS`;
 
   const lines: string[] = [];
   lines.push(`Valorant — ${matchInfo.mapName} (${matchInfo.gameModeName})`);
