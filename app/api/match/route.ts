@@ -275,8 +275,14 @@ export async function GET(request: Request) {
       isRanked = preGame?.IsRanked ?? gameModeId === "competitive";
       seasonId = preGame?.SeasonID ?? "";
 
-      const allyPlayers = preGame?.AllyTeam?.Players ?? [];
-      const enemyPlayers = preGame?.EnemyTeam?.Players ?? [];
+      const allyPlayers = (preGame?.AllyTeam?.Players ?? []).map((p: any) => ({
+    ...p,
+    TeamID: p?.TeamID ?? "Blue",
+    }));
+      const enemyPlayers = (preGame?.EnemyTeam?.Players ?? []).map((p: any) => ({
+    ...p,
+      TeamID: p?.TeamID ?? "Red",
+}));
       players = [...allyPlayers, ...enemyPlayers];
     } else {
       matchCache = null;
