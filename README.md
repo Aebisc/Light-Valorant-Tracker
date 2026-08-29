@@ -25,7 +25,7 @@ Open source match tracker for Valorant. Pulls live match data from the local Rio
 ## Setup
 
 ```bash
-git clone https://github.com/wtfsajit/valorant-tracker.git
+git clone https://github.com/Aebisc/Light-Valorant-Tracker.git
 cd valorant-tracker
 npm install
 npm run dev
