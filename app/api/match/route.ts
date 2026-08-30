@@ -18,7 +18,7 @@ import type { ValorantPlayer, MatchInfo, ApiConfig } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const VANDAL_WEAPON_ID = "9c82e19d-4575-0200-1a81-3eacf00cf872";
-const RECENT_GAMES_COUNT = 10;
+const RECENT_GAMES_COUNT = 20;
 
 let matchCache: {
   matchId: string;
@@ -77,9 +77,9 @@ function extractSkin(loadouts: any, puuid: string): string {
   }
 }
 
-// Sized to comfortably hold ~10 recent games for up to 10 players in a single lobby
+// Sized to comfortably hold ~20 recent games for up to 10 players in a single lobby
 // without evicting entries mid-session (details are keyed by immutable match id).
-const MAX_MATCH_DETAIL_CACHE = 150;
+const MAX_MATCH_DETAIL_CACHE = 250;
 const matchDetailCache = new Map<string, any>();
 let matchDetailCacheForMatchId: string | null = null;
 
@@ -294,6 +294,10 @@ async function buildPlayer(
     currentSeasonGames,
     isCurrentActRank,
     recentGamesCount: 0,
+    lastMatchKills: 0,
+    lastMatchDeaths: 0,
+    lastMatchAssists: 0,
+    lastMatchKD: 0,
     _recentMatchIds: recentMatchIds,
   };
 }
@@ -447,11 +451,18 @@ export async function GET(request: Request) {
       const details = (_recentMatchIds ?? [])
         .map((mid) => detailLookup.get(mid))
         .filter(Boolean);
+      const lastMatchStats = details.length > 0 ? extractPlayerStats(details[0], p.puuid) : null;
+      const lastMatch = {
+        lastMatchKills: lastMatchStats?.kills ?? 0,
+        lastMatchDeaths: lastMatchStats?.deaths ?? 0,
+        lastMatchAssists: lastMatchStats?.assists ?? 0,
+        lastMatchKD: lastMatchStats?.kd ?? 0,
+      };
       if (details.length > 0) {
         const stats = aggregatePlayerStats(details, p.puuid);
-        return { ...player, ...stats };
+        return { ...player, ...stats, ...lastMatch };
       }
-      return player;
+      return { ...player, ...lastMatch };
     });
     const mapLower = mapId.toLowerCase().replace(/\.[^/]+$/, "");
     const mapName =

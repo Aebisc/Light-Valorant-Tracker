@@ -328,20 +328,18 @@ function ExpandedRow({ p, flags }: {
     }}>
       <div className="expanded-grid">
         <div className="expanded-section">
-          <div className="t-micro" style={{ color: "var(--ink-dim)", marginBottom: 8 }}>
-            {p.recentGamesCount > 1 ? `Last ${p.recentGamesCount} Games (avg)` : "Last Match"}
-          </div>
+          <div className="t-micro" style={{ color: "var(--ink-dim)", marginBottom: 8 }}>Last Match</div>
           <div style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
             <div>
               <span className="t-title" style={{ fontSize: 20, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>
-                {p.kills.toFixed(1)}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.deaths.toFixed(1)}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.assists.toFixed(1)}
+                {p.lastMatchKills}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.lastMatchDeaths}<span className="t-label" style={{ opacity: 0.35, margin: "0 1px" }}>/</span>{p.lastMatchAssists}
               </span>
               <div className="t-micro" style={{ color: "var(--ink-dim)", marginTop: 3 }}>K / D / A</div>
             </div>
             <div style={{ width: 1, height: 28, background: "var(--border)", flexShrink: 0 }} />
             <div>
-              <div className="t-title" style={{ fontSize: 16, color: p.kd >= 1 ? "var(--up)" : "var(--down)", fontVariantNumeric: "tabular-nums", transition: "color 0.2s ease" }}>
-                {p.kd > 0 ? p.kd.toFixed(2) : "-"}
+              <div className="t-title" style={{ fontSize: 16, color: p.lastMatchKD >= 1 ? "var(--up)" : "var(--down)", fontVariantNumeric: "tabular-nums", transition: "color 0.2s ease" }}>
+                {p.lastMatchKD > 0 ? p.lastMatchKD.toFixed(2) : "-"}
               </div>
               <div className="t-micro" style={{ color: "var(--ink-dim)", marginTop: 3 }}>K/D</div>
             </div>
