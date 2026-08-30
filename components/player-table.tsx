@@ -34,23 +34,6 @@ function avgTeamRank(players: Player[]): { avg: number; tier: number; name: stri
   return { avg, tier, name, color: rankColor(tintKey) };
 }
 
-function smurfFlags(p: Player): string[] {
-  const flags: string[] = [];
-  if (p.accountLevel > 0 && p.accountLevel < 50 && p.rank >= 18) {
-    flags.push("New account, high rank");
-  }
-  if (p.peakRank >= 3 && p.rank >= 3 && p.peakRank - p.rank >= 6) {
-    flags.push(`Peak ${p.peakRankName}, now ${p.rankName}`);
-  }
-  if (p.accountLevel > 0 && p.accountLevel < 25 && p.rank >= 3) {
-    flags.push("Very new account");
-  }
-  if (p.rank >= 3 && !p.isCurrentActRank && p.currentSeasonGames === 0) {
-    flags.push("No games this act");
-  }
-  return flags;
-}
-
 function ExpandCollapse({ open, children }: { open: boolean; children: React.ReactNode }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -130,7 +113,6 @@ function Row({ p, self, i, expanded, onToggle, badges }: {
   const rc = rankColor(p.rankName);
   const pc = rankColor(p.peakRankName);
   const delay = i < 10 ? `a-d${i + 1}` : "a-enter";
-  const flags = smurfFlags(p);
   const isMvp = badges?.includes("mvp");
 
   return (
@@ -196,13 +178,6 @@ function Row({ p, self, i, expanded, onToggle, badges }: {
             )}
             {p.tag && <span className="t-label" style={{ color: "var(--ink-dim)", transition: "color 0.2s ease" }}>#{p.tag}</span>}
             {self && <span className="you-badge" style={{ transition: "background 0.2s ease, border-color 0.2s ease" }}>you</span>}
-            {flags.length > 0 && (
-              <span className="smurf-badge" title={flags.join(" | ")} style={{ transition: "color 0.2s ease, transform 0.2s ease" }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
-              </span>
-            )}
             {badges && badges.map((b) => <Badge key={b} type={b} />)}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -261,14 +236,14 @@ function Row({ p, self, i, expanded, onToggle, badges }: {
       </div>
 
       <ExpandCollapse open={expanded}>
-        <ExpandedRow p={p} flags={flags} />
+        <ExpandedRow p={p} />
       </ExpandCollapse>
     </div>
   );
 }
 
-function ExpandedRow({ p, flags }: {
-  p: Player; flags: string[];
+function ExpandedRow({ p }: {
+  p: Player;
 }) {
   const totalShots = p.headshots + p.bodyshots + p.legshots;
   const hsPct = totalShots > 0 ? (p.headshots / totalShots * 100) : 0;
@@ -353,19 +328,6 @@ function ExpandedRow({ p, flags }: {
           </div>
         </div>
       </div>
-
-      {flags.length > 0 && (
-        <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {flags.map((f, i) => (
-            <span key={i} className="smurf-flag" style={{ transition: "background 0.2s ease, border-color 0.2s ease" }}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              {f}
-            </span>
-          ))}
-        </div>
-      )}
 
     </div>
   );
