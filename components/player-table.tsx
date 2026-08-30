@@ -40,12 +40,6 @@ function avgTeamRank(players: Player[]): { avg: number; tier: number; name: stri
   return { avg, tier, name, color: rankColor(tintKey) };
 }
 
-function teamElo(players: Player[]): number {
-  const ranked = players.filter((p) => p.rank >= 3);
-  if (ranked.length === 0) return 0;
-  return ranked.reduce((s, p) => s + p.rank * 100 + p.rr, 0) / ranked.length;
-}
-
 function smurfFlags(p: Player): string[] {
   const flags: string[] = [];
   if (p.accountLevel > 0 && p.accountLevel < 50 && p.rank >= 18) {
@@ -443,59 +437,6 @@ function StatCell({ label, val, warn }: { label: string; val: string; warn?: boo
   );
 }
 
-function RankDistribution({ myPlayers, enemyPlayers, myColor, enemyColor }: {
-  myPlayers: Player[]; enemyPlayers: Player[]; myColor: string; enemyColor: string;
-}) {
-  const allRanked = [...myPlayers, ...enemyPlayers].filter((p) => p.rank >= 3);
-  if (allRanked.length === 0) return null;
-
-  const minRank = Math.min(...allRanked.map((p) => p.rank));
-  const maxRank = Math.max(...allRanked.map((p) => p.rank));
-  const range = Math.max(1, maxRank - minRank);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div className="t-micro" style={{ color: "var(--ink-dim)", textAlign: "center" }}>Rank Spread</div>
-      <div style={{ position: "relative", height: 24, background: "var(--surface-1)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
-        {Array.from(new Set(allRanked.map((p) => p.rank))).map((tier) => {
-          const left = ((tier - minRank) / range) * 100;
-          return (
-            <div key={`label-${tier}`} style={{
-              position: "absolute", left: `${left}%`, bottom: 0, transform: "translateX(-50%)",
-              fontSize: 7, fontFamily: "var(--mono)", color: "var(--ink-dim)", letterSpacing: "0.5px",
-              transition: "left 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}>
-              {RANK_NAMES_SHORT[tier] ?? ""}
-            </div>
-          );
-        })}
-        {myPlayers.filter((p) => p.rank >= 3).map((p) => {
-          const left = ((p.rank - minRank) / range) * 100;
-          return (
-            <div key={p.puuid} title={`${p.name} - ${p.rankName}`} style={{
-              position: "absolute", left: `${left}%`, top: 3, transform: "translateX(-50%)",
-              width: 8, height: 8, borderRadius: "50%", background: myColor, opacity: 0.8,
-              border: "1.5px solid var(--void)",
-              transition: "left 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease",
-            }} />
-          );
-        })}
-        {enemyPlayers.filter((p) => p.rank >= 3).map((p) => {
-          const left = ((p.rank - minRank) / range) * 100;
-          return (
-            <div key={p.puuid} title={`${p.name} - ${p.rankName}`} style={{
-              position: "absolute", left: `${left}%`, top: 3, transform: "translateX(-50%)",
-              width: 8, height: 8, borderRadius: "50%", background: enemyColor, opacity: 0.8,
-              border: "1.5px solid var(--void)",
-              transition: "left 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease",
-            }} />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function Team({ label, color, players, all, selfPuuid, expandedPuuid, setExpanded, playerBadges }: {
   label: string; color: string; players: Player[]; all: Player[]; selfPuuid: string;
   expandedPuuid: string | null; setExpanded: (id: string | null) => void;
@@ -575,67 +516,6 @@ function Team({ label, color, players, all, selfPuuid, expandedPuuid, setExpande
   );
 }
 
-function WinBar({ myPct, myLabel, enemyLabel, myColor, enemyColor, myPlayers, enemyPlayers }: {
-  myPct: number; myLabel: string; enemyLabel: string; myColor: string; enemyColor: string;
-  myPlayers: Player[]; enemyPlayers: Player[];
-}) {
-  const clamped = Math.max(5, Math.min(95, myPct));
-  const enemyPct = 100 - myPct;
-  const myRound = Math.round(myPct);
-  const enemyRound = Math.round(enemyPct);
-  const favored = myRound > enemyRound ? "you" : myRound < enemyRound ? "them" : "even";
-
-  return (
-    <div className="card a-enter winbar-card">
-      <div className="winbar-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 3, height: 12, borderRadius: 1, background: myColor, transition: "background 0.3s ease" }} />
-          <span className="t-label" style={{ color: myColor, transition: "color 0.3s ease" }}>{myLabel}</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-          <span className="t-micro" style={{ color: "var(--ink-dim)" }}>Win Chance</span>
-          {favored !== "even" && (
-            <span className="t-micro" style={{ color: favored === "you" ? "var(--up)" : "var(--down)", transition: "color 0.3s ease" }}>
-              {favored === "you" ? "Favored" : "Underdog"}
-            </span>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="t-label" style={{ color: enemyColor, transition: "color 0.3s ease" }}>{enemyLabel}</span>
-          <div style={{ width: 3, height: 12, borderRadius: 1, background: enemyColor, transition: "background 0.3s ease" }} />
-        </div>
-      </div>
-
-      <div className="winbar-track">
-        <div className="winbar-fill" style={{
-          width: `${clamped}%`,
-          background: `linear-gradient(90deg, ${myColor}, ${myColor}cc)`,
-          boxShadow: `0 2px 8px ${myColor}30`,
-          transition: "width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease",
-        }} />
-        <div className="winbar-fill" style={{
-          width: `${100 - clamped}%`,
-          background: `linear-gradient(90deg, ${enemyColor}cc, ${enemyColor})`,
-          boxShadow: `0 2px 8px ${enemyColor}30`,
-          transition: "width 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease",
-        }} />
-        <div className="winbar-notch" />
-      </div>
-
-      <div className="winbar-footer">
-        <span className="t-title" style={{ color: myColor, fontSize: 18, fontVariantNumeric: "tabular-nums", transition: "color 0.3s ease", filter: "brightness(1.15)" }}>
-          {myRound}<span className="t-label" style={{ color: myColor, opacity: 0.7 }}>%</span>
-        </span>
-        <span className="t-title" style={{ color: enemyColor, fontSize: 18, fontVariantNumeric: "tabular-nums", transition: "color 0.3s ease", filter: "brightness(1.15)" }}>
-          {enemyRound}<span className="t-label" style={{ color: enemyColor, opacity: 0.7 }}>%</span>
-        </span>
-      </div>
-
-      <RankDistribution myPlayers={myPlayers} enemyPlayers={enemyPlayers} myColor={myColor} enemyColor={enemyColor} />
-    </div>
-  );
-}
-
 export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: Props) {
   const [expandedPuuid, setExpanded] = useState<string | null>(null);
 
@@ -687,21 +567,9 @@ export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: P
     return badges;
   }, [players]);
 
-  const myElo = teamElo(my);
-  const enemyElo = teamElo(enemy);
-  const showWinBar = myElo > 0 && enemyElo > 0;
-  const myWinPct = showWinBar ? 100 / (1 + Math.pow(10, (enemyElo - myElo) / 400)) : 50;
-
   if (my.length === 5 && enemy.length === 5) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {showWinBar && (
-          <WinBar
-            myPct={myWinPct} myLabel="Your Team" enemyLabel="Enemy Team"
-            myColor={myColor} enemyColor={enemyColor}
-            myPlayers={my} enemyPlayers={enemy}
-          />
-        )}
         <div className="grid grid-cols-1 xl:grid-cols-2" style={{ gap: 16 }}>
           <Team label="Your Team" color={myColor} players={my} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
           <Team label="Enemy Team" color={enemyColor} players={enemy} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
@@ -712,13 +580,6 @@ export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: P
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {showWinBar && (
-        <WinBar
-          myPct={myWinPct} myLabel="Your Team" enemyLabel="Enemy Team"
-          myColor={myColor} enemyColor={enemyColor}
-          myPlayers={my} enemyPlayers={enemy}
-        />
-      )}
       {my.length > 0 && <Team label="Your Team" color={myColor} players={my} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
       {enemy.length > 0 && <Team label="Enemy Team" color={enemyColor} players={enemy} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
     </div>
