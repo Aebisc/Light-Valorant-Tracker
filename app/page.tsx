@@ -3,7 +3,6 @@
 import MatchHeader from "../components/match-header";
 import PlayerTable from "../components/player-table";
 import StatusBar from "../components/status-bar";
-import { useToast } from "../components/toast";
 import { useMatchPolling } from "../hooks/use-match-polling";
 import { useSettings } from "../hooks/use-settings";
 import type { Player, MatchInfo } from "@/lib/types";
@@ -29,8 +28,6 @@ export default function Home() {
     theme,
     toggleTheme,
   } = useSettings();
-
-  const { toast } = useToast();
 
   const time = lastUpdated
     ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
@@ -156,7 +153,7 @@ export default function Home() {
           <div className="a-enter" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {matchInfo && (
               <div style={{ marginBottom: 20 }}>
-                <MatchHeader matchInfo={matchInfo} gameState={gameState} onRefresh={refresh} refreshing={refreshing} players={players} onCopyToast={() => toast("Copied to clipboard", "success")} stateStartTime={stateStartTime ?? undefined} />
+                <MatchHeader matchInfo={matchInfo} gameState={gameState} onRefresh={refresh} refreshing={refreshing} stateStartTime={stateStartTime ?? undefined} />
               </div>
             )}
 

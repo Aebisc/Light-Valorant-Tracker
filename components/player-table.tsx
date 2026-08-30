@@ -303,7 +303,11 @@ function ExpandedRow({ p }: {
               <span className="t-label">Act Record</span>
               <span className="t-body" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {p.currentSeasonGames > 0
-                  ? <><span style={{ color: "var(--up)", transition: "color 0.2s ease" }}>{p.currentSeasonWins}W</span> / {p.currentSeasonGames}G</>
+                  ? <>
+                      <span style={{ color: "var(--up)", transition: "color 0.2s ease" }}>{p.currentSeasonWins}W</span>
+                      {" / "}
+                      <span style={{ color: "var(--down)", transition: "color 0.2s ease" }}>{Math.max(0, p.currentSeasonGames - p.currentSeasonWins)}L</span>
+                    </>
                   : <span style={{ color: "var(--ink-dim)" }}>No games</span>
                 }
               </span>

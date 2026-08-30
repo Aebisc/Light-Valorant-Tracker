@@ -30,3 +30,7 @@ next-env.d.ts
 .DS_Store
 *.pem
 Thumbs.db
+
+# tauri
+scripts
+src-tauri
