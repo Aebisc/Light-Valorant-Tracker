@@ -26,8 +26,6 @@ export interface ValorantPlayer {
   acs: number;
   adr: number;
   skin: string;
-  partyId: string;
-  isPartyMember: boolean;
   currentSeasonWins: number;
   currentSeasonGames: number;
   isCurrentActRank: boolean;

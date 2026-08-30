@@ -15,12 +15,6 @@ function agentImg(id: string) {
   return `https://media.valorant-api.com/agents/${id}/displayicon.png`;
 }
 
-function partyHue(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return `hsl(${Math.abs(h % 360)}, 50%, 58%)`;
-}
-
 const RANK_RANGES: Record<string, [number, number]> = {
   Iron: [3, 5], Bronze: [6, 8], Silver: [9, 11], Gold: [12, 14],
   Platinum: [15, 17], Diamond: [18, 20], Ascendant: [21, 23],
@@ -55,28 +49,6 @@ function smurfFlags(p: Player): string[] {
     flags.push("No games this act");
   }
   return flags;
-}
-
-function getPartyGroups(players: Player[]): Map<string, Player[]> {
-  const groups = new Map<string, Player[]>();
-  for (const p of players) {
-    if (!p.isPartyMember || !p.partyId) continue;
-    const existing = groups.get(p.partyId) ?? [];
-    existing.push(p);
-    groups.set(p.partyId, existing);
-  }
-  for (const [id, members] of groups) {
-    if (members.length < 2) groups.delete(id);
-  }
-  return groups;
-}
-
-function partyLabel(players: Player[]): string | null {
-  const groups = getPartyGroups(players);
-  if (groups.size === 0) return null;
-  const sizes = [...groups.values()].map((g) => g.length).sort((a, b) => b - a);
-  if (sizes.length === 1) return `${sizes[0]}-stack`;
-  return sizes.map((s) => `${s}-stack`).join(" + ");
 }
 
 function ExpandCollapse({ open, children }: { open: boolean; children: React.ReactNode }) {
@@ -150,14 +122,13 @@ function Badge({ type }: { type: BadgeType }) {
   );
 }
 
-function Row({ p, all, self, i, expanded, onToggle, badges }: {
-  p: Player; all: Player[]; self: boolean; i: number;
+function Row({ p, self, i, expanded, onToggle, badges }: {
+  p: Player; self: boolean; i: number;
   expanded: boolean; onToggle: () => void;
   badges?: BadgeType[];
 }) {
   const rc = rankColor(p.rankName);
   const pc = rankColor(p.peakRankName);
-  const party = p.isPartyMember && all.filter((x) => x.partyId === p.partyId && x.isPartyMember).length > 1;
   const delay = i < 10 ? `a-d${i + 1}` : "a-enter";
   const flags = smurfFlags(p);
   const isMvp = badges?.includes("mvp");
@@ -186,10 +157,6 @@ function Row({ p, all, self, i, expanded, onToggle, badges }: {
           } : {}),
         }}
       >
-        {party && (
-          <div className="party-bar" style={{ background: partyHue(p.partyId), transition: "opacity 0.2s ease" }} />
-        )}
-
         <div
           className="agent-icon agent-icon-hover"
           style={{
@@ -437,13 +404,12 @@ function StatCell({ label, val, warn }: { label: string; val: string; warn?: boo
   );
 }
 
-function Team({ label, color, players, all, selfPuuid, expandedPuuid, setExpanded, playerBadges }: {
-  label: string; color: string; players: Player[]; all: Player[]; selfPuuid: string;
+function Team({ label, color, players, selfPuuid, expandedPuuid, setExpanded, playerBadges }: {
+  label: string; color: string; players: Player[]; selfPuuid: string;
   expandedPuuid: string | null; setExpanded: (id: string | null) => void;
   playerBadges?: Map<string, BadgeType[]>;
 }) {
   const avg = avgTeamRank(players);
-  const party = partyLabel(players);
 
   const ROLE_COLORS: Record<string, string> = {
     Duelist: "var(--down)", Initiator: "var(--info)", Controller: "var(--up)", Sentinel: "var(--warn)",
@@ -465,9 +431,6 @@ function Team({ label, color, players, all, selfPuuid, expandedPuuid, setExpande
       <div className="section-label">
         <div style={{ width: 3, height: 14, borderRadius: 1, background: color, transition: "background 0.2s ease" }} />
         <span className="t-label" style={{ color, transition: "color 0.2s ease" }}>{label}</span>
-        {party && (
-          <span className="party-badge" style={{ transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease" }}>{party}</span>
-        )}
         {avg && (
           <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5 }}>
             <span className="t-label" style={{ color: avg.color, fontWeight: 600, letterSpacing: 0.5, transition: "color 0.2s ease" }}>{avg.name}</span>
@@ -503,7 +466,6 @@ function Team({ label, color, players, all, selfPuuid, expandedPuuid, setExpande
           <Row
             key={p.puuid}
             p={p}
-            all={all}
             self={p.puuid === selfPuuid}
             i={i}
             expanded={expandedPuuid === p.puuid}
@@ -522,7 +484,7 @@ export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: P
   if (isDeathmatch) {
     return (
       <Team
-        label="Players" color="var(--ink-faint)" players={players} all={players}
+        label="Players" color="var(--ink-faint)" players={players}
         selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded}
       />
     );
@@ -571,8 +533,8 @@ export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: P
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="grid grid-cols-1 xl:grid-cols-2" style={{ gap: 16 }}>
-          <Team label="Your Team" color={myColor} players={my} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
-          <Team label="Enemy Team" color={enemyColor} players={enemy} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
+          <Team label="Your Team" color={myColor} players={my} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
+          <Team label="Enemy Team" color={enemyColor} players={enemy} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />
         </div>
       </div>
     );
@@ -580,8 +542,8 @@ export default function PlayerTable({ players, isDeathmatch, selfPuuid = "" }: P
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {my.length > 0 && <Team label="Your Team" color={myColor} players={my} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
-      {enemy.length > 0 && <Team label="Enemy Team" color={enemyColor} players={enemy} all={players} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
+      {my.length > 0 && <Team label="Your Team" color={myColor} players={my} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
+      {enemy.length > 0 && <Team label="Enemy Team" color={enemyColor} players={enemy} selfPuuid={selfPuuid} expandedPuuid={expandedPuuid} setExpanded={setExpanded} playerBadges={playerBadges} />}
     </div>
   );
 }

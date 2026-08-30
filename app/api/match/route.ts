@@ -288,8 +288,6 @@ async function buildPlayer(
     acs: 0,
     adr: 0,
     skin,
-    partyId: "",
-    isPartyMember: false,
     currentSeasonWins,
     currentSeasonGames,
     isCurrentActRank,

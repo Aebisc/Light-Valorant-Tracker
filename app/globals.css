@@ -231,13 +231,6 @@ a, button, [role="button"], input, select, textarea {
   border-left: 2px solid var(--accent);
 }
 
-.party-bar {
-  position: absolute;
-  left: 0; top: 8px; bottom: 8px;
-  width: 2px;
-  border-radius: 1px;
-}
-
 .agent-icon {
   width: 38px; height: 38px;
   border-radius: var(--radius-md);
@@ -301,23 +294,6 @@ a, button, [role="button"], input, select, textarea {
   color: var(--warn);
   line-height: 1.2;
 }
-.party-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border-radius: 2px;
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--info);
-  line-height: 1.2;
-}
-
-
 .tracker-link { transition: color 0.2s ease; }
 .tracker-link:hover { text-decoration: underline; text-underline-offset: 2px; color: var(--ink); }
 .tracker-link-icon { transition: opacity 0.2s ease; }
