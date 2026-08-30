@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { Player } from "@/lib/types";
-import { AGENT_ROLE_MAP, RANK_COLORS, rankColor, RANK_NAMES_SHORT } from "@/lib/constants";
+import { RANK_COLORS, rankColor, RANK_NAMES_SHORT } from "@/lib/constants";
 
 
 interface Props {
@@ -411,21 +411,6 @@ function Team({ label, color, players, selfPuuid, expandedPuuid, setExpanded, pl
 }) {
   const avg = avgTeamRank(players);
 
-  const ROLE_COLORS: Record<string, string> = {
-    Duelist: "var(--down)", Initiator: "var(--info)", Controller: "var(--up)", Sentinel: "var(--warn)",
-  };
-  const roleCounts: Record<string, number> = {};
-  for (const p of players) {
-    const role = AGENT_ROLE_MAP[p.agentName];
-    if (role) roleCounts[role] = (roleCounts[role] ?? 0) + 1;
-  }
-  const roleEntries = ["Duelist", "Initiator", "Controller", "Sentinel"]
-    .filter((r) => (roleCounts[r] ?? 0) > 0)
-    .map((r) => ({ role: r, count: roleCounts[r] ?? 0, color: ROLE_COLORS[r] }));
-  const compWarnings: string[] = [];
-  if ((roleCounts["Controller"] ?? 0) === 0 && players.length >= 5) compWarnings.push("No smokes");
-  if ((roleCounts["Duelist"] ?? 0) >= 3) compWarnings.push("3+ Duelists");
-
   return (
     <div>
       <div className="section-label">
@@ -442,25 +427,6 @@ function Team({ label, color, players, selfPuuid, expandedPuuid, setExpanded, pl
         background: `linear-gradient(90deg, ${color}, transparent 60%)`,
         opacity: 0.2,
       }} />
-      {roleEntries.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "4px 8px 4px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {roleEntries.map(({ role, count, color: roleColor }) => (
-              <span key={role} className="t-micro" style={{ color: roleColor, letterSpacing: "0.3px", transition: "color 0.2s ease" }}>
-                {count} {role}
-              </span>
-            ))}
-          </div>
-          {compWarnings.length > 0 && compWarnings.map((w) => (
-            <span key={w} className="smurf-flag" style={{ color: "var(--warn)", fontSize: 9, padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3, transition: "background 0.2s ease, border-color 0.2s ease" }}>
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              {w}
-            </span>
-          ))}
-        </div>
-      )}
       <div className="card" style={{ padding: 4 }}>
         {players.map((p, i) => (
           <Row
