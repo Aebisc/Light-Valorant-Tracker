@@ -42,10 +42,6 @@ Open [localhost:3000](http://localhost:3000) and launch Valorant. The tracker wi
 
 Polls at adaptive intervals — faster during Agent Select and In-Game, slower in menus.
 
-## Credits
-
-Built by [sympathy.club](https://sympathy.club)
-
 ## License
 
 MIT — see [LICENSE](LICENSE)

@@ -16,12 +16,12 @@ export default function StatusBar() {
           <div className="status-bar-credits">
             <span className="t-label">
               <a
-                href="https://sympathy.club"
+                href="https://github.com/Aebisc/Light-Valorant-Tracker"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-link"
               >
-                sympathy.club
+                Aebisc
               </a>
             </span>
 
