@@ -5,7 +5,6 @@ import {
   getCoreGamePlayerId,
   getPreGameMatch,
   getCoreGameMatch,
-  getCoreGameLoadouts,
   getPlayerMMR,
   getCompetitiveUpdates,
   getMatchDetails,
@@ -17,7 +16,6 @@ import type { ValorantPlayer, MatchInfo, ApiConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const VANDAL_WEAPON_ID = "9c82e19d-4575-0200-1a81-3eacf00cf872";
 const RECENT_GAMES_COUNT = 20;
 
 let matchCache: {
@@ -47,34 +45,6 @@ function getCurrentSeasonId(seasonalInfo: Record<string, any>, matchSeasonId: st
     }
   }
   return best;
-}
-
-function extractSkin(loadouts: any, puuid: string): string {
-  try {
-    const playerLoadout = Array.isArray(loadouts?.Loadouts)
-      ? loadouts.Loadouts.find((l: any) => l.Subject === puuid)
-      : loadouts;
-
-    const items = playerLoadout?.Loadout?.Items;
-    if (items && typeof items === "object" && !Array.isArray(items)) {
-      const vandalEntry = items[VANDAL_WEAPON_ID];
-      if (vandalEntry) {
-        return vandalEntry.SkinID ?? vandalEntry.ChromaID ?? vandalEntry.Skins?.[0]?.SkinID ?? "Unknown";
-      }
-    }
-
-    const guns = playerLoadout?.Guns ?? [];
-    if (Array.isArray(guns)) {
-      const vandal = guns.find((g: any) => g.ID === VANDAL_WEAPON_ID || g.ItemID === VANDAL_WEAPON_ID);
-      if (vandal) {
-        return vandal.SkinID ?? vandal.ChromaID ?? vandal.Skins?.[0]?.SkinID ?? "Unknown";
-      }
-    }
-
-    return "Unknown";
-  } catch {
-    return "Unknown";
-  }
 }
 
 // Sized to comfortably hold ~20 recent games for up to 10 players in a single lobby
@@ -204,7 +174,6 @@ async function buildPlayer(
   puuid: string,
   config: ApiConfig,
   matchPlayerData: any,
-  loadouts: any,
   nameData: { GameName?: string; DisplayName?: string; TagLine?: string } | null,
   matchSeasonId: string
 ): Promise<ValorantPlayer & { _recentMatchIds?: string[] }> {
@@ -255,8 +224,6 @@ async function buildPlayer(
   const agentId = matchPlayerData?.CharacterID ?? matchPlayerData?.CharacterSelectionID ?? "";
   const identity = matchPlayerData?.PlayerIdentity ?? {};
 
-  const skin = extractSkin(loadouts, puuid);
-
   const displayName = nameData?.GameName ?? (nameData as any)?.DisplayName ?? "";
   const tagLine = nameData?.TagLine ?? "";
 
@@ -287,7 +254,6 @@ async function buildPlayer(
     assists: 0,
     acs: 0,
     adr: 0,
-    skin,
     currentSeasonWins,
     currentSeasonGames,
     isCurrentActRank,
@@ -325,16 +291,12 @@ export async function GET(request: Request) {
     let isRanked = false;
     let resolvedMatchId = "";
     let seasonId = "";
-    let loadouts: any = null;
     let resolvedGameState: "PREGAME" | "INGAME" | "MENUS" = "MENUS";
 
     if (coreGameMatchId) {
       resolvedGameState = "INGAME";
       resolvedMatchId = coreGameMatchId;
-      const [coreGame, coreLoadouts] = await Promise.all([
-        getCoreGameMatch(config, coreGameMatchId),
-        getCoreGameLoadouts(config, coreGameMatchId),
-      ]);
+      const coreGame = await getCoreGameMatch(config, coreGameMatchId);
       mapId = coreGame?.MapID ?? "";
       gameMode = coreGame?.Mode ?? "";
       gameModeId = coreGame?.QueueID || coreGame?.ModeID || "";
@@ -342,7 +304,6 @@ export async function GET(request: Request) {
       server = coreGame?.GamePodID ?? "";
       seasonId = coreGame?.SeasonID ?? "";
       players = coreGame?.Players ?? [];
-      loadouts = coreLoadouts;
     } else if (preGameMatchId) {
       resolvedGameState = "PREGAME";
       resolvedMatchId = preGameMatchId;
@@ -413,7 +374,7 @@ export async function GET(request: Request) {
         const puuid = puuids[i];
         if (!puuid) return null;
         const nameData = nameMap.get(puuid) ?? null;
-        return buildPlayer(puuid, config, p, loadouts, nameData, seasonId)
+        return buildPlayer(puuid, config, p, nameData, seasonId)
           .catch(() => null);
       })
     );

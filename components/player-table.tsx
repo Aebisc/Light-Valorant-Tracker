@@ -185,15 +185,6 @@ function Row({ p, self, i, expanded, onToggle, badges }: {
             <span className="dot" />
             <span className="t-label" style={{ fontVariantNumeric: "tabular-nums" }}>LVL {p.accountLevel}</span>
           </div>
-          {p.skin && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}>
-                <rect x="2" y="6" width="16" height="6" rx="1" />
-                <path d="M18 9h4M8 12v5a1 1 0 01-1 1H6a1 1 0 01-1-1v-5" />
-              </svg>
-              <span className="t-label" style={{ color: "var(--ink-dim)", fontSize: 10, opacity: 0.7 }}>{p.skin}</span>
-            </div>
-          )}
         </div>
 
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>

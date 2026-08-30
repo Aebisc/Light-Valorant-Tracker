@@ -25,7 +25,6 @@ export interface ValorantPlayer {
   assists: number;
   acs: number;
   adr: number;
-  skin: string;
   currentSeasonWins: number;
   currentSeasonGames: number;
   isCurrentActRank: boolean;

@@ -193,13 +193,6 @@ export async function getCoreGameMatch(config: ApiConfig, matchId: string): Prom
   return safeJson(res);
 }
 
-export async function getCoreGameLoadouts(config: ApiConfig, matchId: string): Promise<any> {
-  const res = await remoteFetch(`${config.glzUrl}/core-game/v1/matches/${matchId}/loadouts`, {
-    headers: config.headers,
-  });
-  return safeJson(res);
-}
-
 export async function getPlayerMMR(config: ApiConfig, puuid: string): Promise<any> {
   const res = await remoteFetch(`${config.pdUrl}/mmr/v1/players/${puuid}`, {
     headers: config.headers,
