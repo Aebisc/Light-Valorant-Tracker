@@ -123,6 +123,29 @@ function extractPlayerStats(matchDetail: any, puuid: string) {
   return { kills, deaths, assists, kd, headshots, bodyshots, legshots, headshotPercent, winrate, acs, adr, won };
 }
 
+/** Like extractPlayerStats' `won` field, but distinguishes an actual draw
+ *  (rare, but possible if a match ends with equal rounds) from a loss. */
+function getMatchResult(matchDetail: any, puuid: string): "W" | "L" | "D" {
+  const playerStats = matchDetail?.players?.find((p: any) => p.subject === puuid);
+  const teamId = playerStats?.teamId;
+  if (!teamId) return "L";
+
+  const team = matchDetail?.teams?.find((t: any) => t.teamId === teamId);
+  const opponent = matchDetail?.teams?.find((t: any) => t.teamId !== teamId);
+
+  if (typeof team?.won === "boolean" && typeof opponent?.won === "boolean") {
+    if (team.won && !opponent.won) return "W";
+    if (!team.won && opponent.won) return "L";
+    return "D";
+  }
+
+  const myRounds = team?.roundsWon ?? 0;
+  const oppRounds = opponent?.roundsWon ?? 0;
+  if (myRounds > oppRounds) return "W";
+  if (myRounds < oppRounds) return "L";
+  return "D";
+}
+
 /** Averages a player's stats across their N most recent completed matches. */
 function aggregatePlayerStats(matchDetails: any[], puuid: string) {
   let sumKills = 0, sumDeaths = 0, sumAssists = 0;
@@ -262,6 +285,7 @@ async function buildPlayer(
     lastMatchDeaths: 0,
     lastMatchAssists: 0,
     lastMatchKD: 0,
+    recentResults: [],
     _recentMatchIds: recentMatchIds,
   };
 }
@@ -417,11 +441,15 @@ export async function GET(request: Request) {
         lastMatchAssists: lastMatchStats?.assists ?? 0,
         lastMatchKD: lastMatchStats?.kd ?? 0,
       };
+      // Up to 5 most recent results, newest first — details is already
+      // ordered this way since _recentMatchIds comes from the newest-first
+      // currentActMatches list.
+      const recentResults = details.slice(0, 5).map((d) => getMatchResult(d, p.puuid));
       if (details.length > 0) {
         const stats = aggregatePlayerStats(details, p.puuid);
-        return { ...player, ...stats, ...lastMatch };
+        return { ...player, ...stats, ...lastMatch, recentResults };
       }
-      return { ...player, ...lastMatch };
+      return { ...player, ...lastMatch, recentResults };
     });
     const mapLower = mapId.toLowerCase().replace(/\.[^/]+$/, "");
     const mapName =

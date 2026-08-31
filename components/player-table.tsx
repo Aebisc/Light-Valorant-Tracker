@@ -271,6 +271,31 @@ function ExpandedRow({ p }: {
               <div className="t-micro" style={{ color: "var(--ink-dim)", marginTop: 3 }}>K/D</div>
             </div>
           </div>
+          {p.recentResults && p.recentResults.length > 0 && (
+            <div style={{ display: "flex", gap: 5, marginTop: 10 }}>
+              {p.recentResults.map((r, i) => (
+                <div
+                  key={i}
+                  title={r === "W" ? "Win" : r === "L" ? "Loss" : "Draw"}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontVariantNumeric: "tabular-nums",
+                    color: r === "W" ? "var(--up)" : r === "L" ? "var(--down)" : "var(--warn)",
+                    background: r === "W" ? "color-mix(in srgb, var(--up) 16%, transparent)" : r === "L" ? "color-mix(in srgb, var(--down) 16%, transparent)" : "color-mix(in srgb, var(--warn) 16%, transparent)",
+                  }}
+                >
+                  {r}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {totalShots > 0 && (
