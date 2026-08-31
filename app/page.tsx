@@ -93,17 +93,17 @@ export default function Home() {
             )}
           </Splash>
         ) : gameState === "MENUS" ? (
-          <div style={{ maxWidth: 760, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-            <div className="card a-enter" style={{ padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ position: "relative", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--up)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div className="a-enter" style={{ maxWidth: 760, margin: "0 auto", width: "100%", minHeight: "70vh", display: "flex", flexDirection: "column", justifyContent: "center", gap: 24 }}>
+            <div className="card a-enter" style={{ padding: "32px 36px", display: "flex", alignItems: "center", gap: 24 }}>
+              <div style={{ position: "relative", width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--up)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p className="t-title" style={{ fontSize: 15 }}>In Menus</p>
-                <p className="t-micro" style={{ marginTop: 2, color: "var(--ink-dim)" }}>Ready to queue</p>
+                <p className="t-title" style={{ fontSize: 24 }}>In Menus</p>
+                <p className="t-label" style={{ marginTop: 6, color: "var(--ink-dim)" }}>Ready to queue</p>
               </div>
               {error && (
                 <span className="tag" style={{ color: "var(--accent)", borderColor: "var(--border-accent)", fontSize: 10 }}>{error}</span>
@@ -114,6 +114,8 @@ export default function Home() {
                 className="btn-ghost"
                 aria-label={refreshing ? "Refreshing match data" : "Refresh match data"}
                 style={{
+                  padding: "10px 18px",
+                  fontSize: 12,
                   transition: "all 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
                 onMouseDown={(e) => {
@@ -127,8 +129,8 @@ export default function Home() {
                 }}
               >
                 <svg
-                  width="10"
-                  height="10"
+                  width="13"
+                  height="13"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
